@@ -2558,6 +2558,64 @@ AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
 
+dnl wireshark dissector
+
+AC_ARG_WITH([wireshark-dissector], [
+  AS_HELP_STRING([--with-wireshark-dissector], [
+    enable wireshark dissector plugin support @<:@default=no@:>@
+  ])],
+  [ with_wireshark_dissector=$withval ],
+  [ with_wireshark_dissector=no ])
+
+if test "$with_wireshark_dissector" != "no"; then
+    dnl Check for XDR headers existence
+    AC_CHECK_HEADERS([rpc/types.h])
+
+    dnl Check for glib-2.0 existence
+    PKG_CHECK_MODULES([GLIB], [glib-2.0])
+    WS_DISSECTOR_CPPFLAGS="$WS_DISSECTOR_CPPFLAGS `$PKG_CONFIG --cflags glib-2.0`"
+
+    dnl Search for wireshark(or tshark) command
+    AC_PATH_PROG([WIRESHARK], [wireshark])
+    AC_PATH_PROG([WIRESHARK], [tshark])
+    if test -z "$WIRESHARK"; then
+        AC_MSG_ERROR([command not found wireshark or tshark])
+    fi
+
+    dnl Check for wireshark headers
+    save_CPPFLAGS="$CPPFLAGS"
+    WS_DISSECTOR_CPPFLAGS="$WS_DISSECTOR_CPPFLAGS -I`dirname $WIRESHARK`/../include/wireshark"
+    CPPFLAGS="$CPPFLAGS $WS_DISSECTOR_CPPFLAGS"
+    AC_CHECK_HEADERS([wireshark/config.h],, [
+      AC_MSG_ERROR([wireshark/config.h is required for wireshark-dissector support])
+    ])
+    AC_CHECK_HEADERS([wireshark/epan/packet.h wireshark/epan/dissectors/packet-tcp.h],, [
+      AC_MSG_ERROR([wireshark/epan/{packet,packet-tcp}.h are required for wireshark-dissector support])
+    ], [
+      #include <wireshark/config.h>
+    ])
+    CPPFLAGS="$save_CPPFLAGS"
+
+    WS_DISSECTOR_PROTO_FILES=`\
+      grep -v '^#' $srcdir/devtools/wireshark-dissector/xdr_proto_files | tr '\n' ' '`
+                              
+    AC_SUBST([WS_DISSECTOR_PROTO_FILES])
+    AC_SUBST([WS_DISSECTOR_CPPFLAGS])
+fi
+AM_CONDITIONAL([WITH_WIRESHARK_DISSECTOR], [test "$with_wireshark_dissector" = "yes"])
+
+AC_ARG_WITH([ws-plugindir], [
+  AC_HELP_STRING([--with-ws-plugindir], [
+    wireshark plugins directory that plugin will installed
+  ])],
+  [ ws_plugindir=$withval ])
+
+if test "$with_wireshark_dissector" != "no" -a -z "$ws_plugindir"; then
+    ws_version=`$WIRESHARK -v | head -1 | cut -f 2 -d' '`
+    ws_plugindir=`dirname $WIRESHARK`/../lib/wireshark/plugins/$ws_version
+fi
+AC_SUBST([ws_plugindir])
+
 # Check for Linux vs. BSD ifreq members
 AC_CHECK_MEMBERS([struct ifreq.ifr_newname,
                   struct ifreq.ifr_ifindex,
@@ -2643,7 +2701,9 @@ AC_CONFIG_FILES([\
         examples/python/Makefile \
         examples/hellolibvirt/Makefile \
         examples/systemtap/Makefile \
-        examples/xml/nwfilter/Makefile])
+        examples/xml/nwfilter/Makefile \
+        devtools/wireshark-dissector/Makefile \
+        devtools/wireshark-dissector/src/Makefile])
 AC_OUTPUT
 
 AC_MSG_NOTICE([])

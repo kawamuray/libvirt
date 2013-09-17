@@ -1,0 +1,5 @@
+# List of XDR specification files(.x) that you want dissector to be supported
+$(top_srcdir)/src/remote/remote_protocol.x
+$(top_srcdir)/src/remote/qemu_protocol.x
+$(top_srcdir)/src/remote/lxc_protocol.x
+$(top_srcdir)/src/rpc/virkeepaliveprotocol.x

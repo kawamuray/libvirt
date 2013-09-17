@@ -22,7 +22,8 @@ GENHTML = genhtml
 SUBDIRS = gnulib/lib include src daemon tools docs gnulib/tests \
   python tests po examples/domain-events/events-c examples/hellolibvirt \
   examples/dominfo examples/domsuspend examples/python examples/apparmor \
-  examples/xml/nwfilter examples/openauth examples/systemtap
+  examples/xml/nwfilter examples/openauth examples/systemtap \
+  devtools/wireshark-dissector
 
 ACLOCAL_AMFLAGS = -I m4 -I gnulib/m4
 
